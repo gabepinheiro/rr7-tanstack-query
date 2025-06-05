@@ -1,18 +1,35 @@
 import { Form, redirect, useNavigate } from "react-router";
 import { getContact, updateContact } from "../data";
 import type { Route } from "./+types/edit-contact";
+import { getQueryClient } from "../middlewares/query-client";
 
-export async function action ({ params, request }: Route.ActionArgs) {
+export async function clientAction ({ params, request, context }: Route.ActionArgs) {
   const formData = await request.formData()
+  
+  const queryClient = getQueryClient(context)
+
   const updates = Object.fromEntries(formData)
   await updateContact(params.contactId, updates)
+
+  queryClient.invalidateQueries({
+    queryKey: ['contact-details', { contactId: params.contactId }]
+  })
+
+  queryClient.invalidateQueries({
+    queryKey: ['contacts:sidebar']
+  })
 
   return redirect(`/contacts/${params.contactId}`)
 
 } 
 
-export async function loader ({ params }: Route.LoaderArgs) {
-  const contact = await getContact(params.contactId)
+export async function clientLoader ({ params, context }: Route.LoaderArgs) {
+  const queryClient = getQueryClient(context)
+
+  const contact = await queryClient.fetchQuery({
+    queryKey: ['contact-details', { contactId: params.contactId }],
+    queryFn: () => getContact(params.contactId)
+  })
 
   if(!contact) {
     throw new Response('Not Found', { status: 404 })
@@ -24,7 +41,7 @@ export async function loader ({ params }: Route.LoaderArgs) {
 export default function EditContact({
   loaderData,
 }: Route.ComponentProps) {
-  const { contact } = loaderData;
+  const { contact } = loaderData // or useQuery / useSuspenseQuery
 
   const navigate = useNavigate()
 

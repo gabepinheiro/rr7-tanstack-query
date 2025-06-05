@@ -2,18 +2,24 @@ import { Form, href, Link, NavLink, Outlet, useNavigation, useSubmit } from "rea
 import type { Route } from "./+types/sidebar";
 import { getContacts } from "../data";
 import { useEffect } from "react";
+import { getQueryClient } from "../middlewares/query-client";
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function clientLoader({ request, context }: Route.LoaderArgs) {
   const url = new URL(request.url)
   const q = url.searchParams.get('q')
 
-  const contacts = await getContacts(q)
+  const queryClient = getQueryClient(context)
+
+  const contacts = await queryClient.fetchQuery({
+    queryKey: ['contacts:sidebar', { q }],
+    queryFn: () => getContacts(q)
+  })
 
   return { contacts, q }
 }
 
 export default function SidebarLayout({ loaderData }: Route.ComponentProps) {
-  const { contacts, q } = loaderData
+  const { contacts, q } = loaderData // or useQuery / useSuspenseQuery
 
   const navigation = useNavigation()
   const submit = useSubmit()

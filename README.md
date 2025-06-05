@@ -1,6 +1,7 @@
-# Welcome to React Router!
+# Welcome to React Router + [@tanstack/react-query](https://tanstack.com/query/latest/docs/framework/react/overview)
 
 - [React Router Docs](https://reactrouter.com/home)
+- [@tanstack/react-query](https://tanstack.com/query/latest/docs/framework/react/overview)
 
 ## Development
 

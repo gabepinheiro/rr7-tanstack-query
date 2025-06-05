@@ -9,15 +9,40 @@ import type { Route } from "./+types/root";
 
 import appStylesHref from "./app.css?url";
 import { createEmptyContact } from "./data";
+import { getQueryClient } from "./middlewares/query-client";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
-export async function action () {
+export async function clientAction () {
   const contact = await createEmptyContact()
 
   return redirect(`/contacts/${contact.id}/edit`)
 }
 
-export default function App() {
-  return <Outlet />
+export function clientLoader({ context }: Route.LoaderArgs) {
+  const queryClient = getQueryClient(context)
+
+  return { queryClient }
+}
+
+export function HydrateFallback() {
+  return (
+    <div id="loading-splash">
+      <div id="loading-splash-spinner" />
+      <p>Loading, please wait...</p>
+    </div>
+  );
+}
+
+export default function App({ loaderData }: Route.ComponentProps) {
+  const { queryClient } = loaderData
+
+  return  (
+    <QueryClientProvider client={queryClient}>
+      <Outlet />
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  )
 }
 
 // The Layout component is a special export for the root route.

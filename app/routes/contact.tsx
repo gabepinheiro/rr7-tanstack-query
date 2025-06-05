@@ -1,17 +1,33 @@
 import { getContact, updateContact, type ContactRecord } from "../data"
 import { Form, useFetcher } from "react-router"
 import type { Route } from "./+types/contact"
+import { getQueryClient } from "../middlewares/query-client"
 
-export async function action({ params, request }: Route.ActionArgs) {
+export async function clientAction({ params, request, context }: Route.ActionArgs) {
   const formData = await request.formData()
 
-  return updateContact(params.contactId, {
+  const queryClient = getQueryClient(context)
+
+  await updateContact(params.contactId, {
     favorite: formData.get('favorite') === "true"
+  })
+
+  queryClient.invalidateQueries({
+    queryKey: ['contact-details', { contactId: params.contactId }]
+  })
+
+  queryClient.invalidateQueries({
+    queryKey: ['contacts:sidebar']
   })
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
-  const contact = await getContact(params.contactId)
+export async function clientLoader({ params, context }: Route.LoaderArgs) {
+  const queryClient = getQueryClient(context)
+
+  const contact = await queryClient.fetchQuery({
+    queryKey: ['contact-details', { contactId: params.contactId }],
+    queryFn: () => getContact(params.contactId)
+  })
 
   if (!contact) {
     throw new Response("Not Found", { status: 404 })
@@ -21,7 +37,7 @@ export async function loader({ params }: Route.LoaderArgs) {
 }
 
 export default function Contact({ loaderData }: Route.ComponentProps) {
-  const { contact } = loaderData
+  const { contact } = loaderData // or useQuery / useSuspenseQuery
 
   return (
     <div id='contact'>
